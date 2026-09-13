@@ -1,0 +1,7 @@
+workspace:
+  launch:
+    button:
+      name: 🌾 开始游戏
+      description: 点开即玩的 AI 种田经营游戏：30 天，把一块薄田经营成产业
+      # 鼠标悬浮在按钮上时显示的预览图（相对仓库根路径，上限 10MB）
+      hoverImage: .cnb/launch-hover.png

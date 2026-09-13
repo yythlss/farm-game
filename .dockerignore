@@ -1,0 +1,27 @@
+# 版本控制与 CI 配置
+.git
+.gitignore
+.cnb
+.cnb.yml
+
+# Python 缓存与虚拟环境
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+.venv
+venv
+env
+
+# 本地凭证
+.env
+*.env
+*.log
+
+# 文档（镜像内不需要）
+*.md
+docs
+
+# 编辑器
+.idea
+.vscode
+.DS_Store

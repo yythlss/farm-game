@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# 本地环境与凭证
+.env
+*.log
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
