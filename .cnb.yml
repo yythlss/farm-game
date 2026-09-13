@@ -25,12 +25,12 @@ $:
       docker:
         image: docker.cnb.cool/hackathon/vibegame-dev-env:latest
       services:
-        # 字符串形式的 vscode 不能省：官方 Schema 通过「services 中是否存在字符串 vscode」
-        # 判定这是云原生开发配置（pipeline 定义的 if/then/else 分支）。
-        # 只写下面的对象形式会被判成普通流水线，进而要求必填 stages 导致校验失败。
-        - vscode
+        # ⚠️ services 里只能有「字符串 docker」+「对象 name: vscode」这两项。
+        # 不要再补字符串形式的 - vscode：那是标准云开发模式的服务声明，
+        # 一旦出现，平台会照常启动 code-server，点按钮进的是 WebIDE 代码页面，
+        # options 里的 onlyPreview 就被绕过去了（曾经踩过这个坑）。
         - docker
-        # 对象形式用于挂载 options，开启仅预览模式
+        # 对象形式承载 options，开启仅预览模式
         - name: vscode
           options:
             # 仅预览模式：点「🌾 开始游戏」直接打开游戏页面，而不是进 WebIDE
@@ -40,11 +40,20 @@ $:
             # 并用 --network host 让容器直接监听宿主 8686（平台只暴露这个端口）。
             # 透传 CNB_* 变量，使容器内的 AI 事件生成能调用平台大模型（零密钥）；
             # 变量只写名不写值，由开发环境容器自动传入，不落盘、不进镜像。
-            launch: docker run -d --rm --network host -e PORT=8686 -e CNB_API_ENDPOINT -e CNB_REPO_SLUG -e CNB_TOKEN ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
+            # 镜像地址写全字面量：${CNB_DOCKER_REGISTRY} 这类变量在此处不保证展开，
+            # 参照已跑通的 xiuxian 仓库写法。
+            launch: docker run -d --rm --network host -e PORT=8686 -e CNB_API_ENDPOINT -e CNB_REPO_SLUG -e CNB_TOKEN docker.cnb.cool/yythlss/git-demo:latest
             # 保活 1 小时：超过该时长检测不到 HTTP 心跳即自动回收环境
             keepAliveTimeout: 3600000
             # 后台执行，无需等待 launch 退出
             daemon: true
+      # 这一节不能省：官方 Schema 若没把上面的写法识别成云开发形态，
+      # 会把 $/vscode/0 当作普通 pipeline 校验，进而要求必填 stages。
+      # 而 stages 在云原生开发里本就是合法的「启动前准备步骤」，补上无副作用。
+      stages:
+        - name: prepare
+          script: |
+            echo "🌾 准备启动游戏环境（业务镜像由 main.push 构建推送）"
 
 main:
   # ---------------- 推送主分支：自动构建并推送镜像 ----------------
