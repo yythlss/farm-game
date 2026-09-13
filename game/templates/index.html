@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 种田经营游戏 · 30 天农场</title>
+<meta name="description" content="经营一块农田，安排播种耕耘，应对天气与 AI 生成的随机事件，30 天后结算农场评级。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body data-weather="晴">
+
+<!-- 天气氛围层 -->
+<div class="wx-layer" aria-hidden="true">
+  <div class="wx-glow"></div>
+  <div class="wx-rain"></div>
+  <div class="wx-snow"></div>
+  <div class="wx-flash"></div>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="app">
+
+  <!-- ============ 顶部命令栏 ============ -->
+  <header class="commandbar panel">
+    <div class="brand">
+      <span class="brand-mark">🌾</span>
+      <div class="brand-text">
+        <strong>AI 种田经营</strong>
+        <span>30 天农场计划</span>
+      </div>
+    </div>
+
+    <div class="day-block">
+      <div class="day-label">
+        <span class="day-now">第 <b id="dayNow">1</b><em>/<span id="dayMax">30</span></em> 天</span>
+        <span class="muted" id="dayLeft">还剩 30 天</span>
+      </div>
+      <div class="day-ticks" id="dayTicks" role="progressbar" aria-label="季度进度"></div>
+    </div>
+
+    <div class="weather-chip" id="weatherChip">
+      <span class="weather-icon" id="weatherIcon">☀️</span>
+      <div class="weather-text">
+        <strong id="weatherName">晴</strong>
+        <span id="weatherTip">光照充足</span>
+      </div>
+      <div class="forecast">
+        <span>明日</span>
+        <b id="forecastName">🌧️ 雨</b>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric metric-gold">
+        <span class="metric-ico">🪙</span>
+        <div class="metric-body">
+          <span class="metric-label">金币</span>
+          <b class="metric-value" id="goldValue">0</b>
+        </div>
+      </div>
+      <div class="metric metric-energy">
+        <span class="metric-ico">⚡</span>
+        <div class="metric-body">
+          <span class="metric-label">体力</span>
+          <b class="metric-value"><span id="energyValue">0</span><em>/<span id="energyMax">10</span></em></b>
+        </div>
+        <div class="bar bar-xs"><i id="energyBar" style="width:100%"></i></div>
+      </div>
+      <div class="metric metric-asset">
+        <span class="metric-ico">📈</span>
+        <div class="metric-body">
+          <span class="metric-label">总资产</span>
+          <b class="metric-value" id="assetValue">0</b>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-next" id="btnNextDay">
+      <span>进入新的一天</span>
+      <em id="nextDayHint">天气 · AI 事件 · 结算</em>
+    </button>
+  </header>
+
+  <!-- ============ 主体 ============ -->
+  <main class="dashboard">
+
+    <div class="col-main">
+      <!-- 农田 -->
+      <section class="panel farm-panel">
+        <div class="panel-head">
+          <h2><span class="dot"></span>农田 <em id="plotCountWrap"><em id="plotCount">9</em> 块地</em></h2>
+          <div class="legend">
+            <span><i class="sw sw-ready"></i>可收获</span>
+            <span><i class="sw sw-thirsty"></i>缺水</span>
+            <span><i class="sw sw-pest"></i>虫害</span>
+            <span><i class="sw sw-empty"></i>空地</span>
+          </div>
+        </div>
+        <div class="farm-grid" id="farmGrid"></div>
+      </section>
+
+      <!-- 日志 + 成就 -->
+      <div class="bottom-grid">
+        <section class="panel log-panel">
+          <div class="panel-head">
+            <h2><span class="dot"></span>农场日志</h2>
+            <div class="log-filter" id="logFilter">
+              <button class="chip active" data-filter="all">全部</button>
+              <button class="chip" data-filter="llm">AI 生成</button>
+              <button class="chip" data-filter="fallback">本地兜底</button>
+            </div>
+          </div>
+          <div class="log-stream" id="logStream"></div>
+        </section>
+
+        <section class="panel ach-panel">
+          <div class="panel-head">
+            <h2><span class="dot"></span>成就墙 <em id="achCount">0/6</em></h2>
+          </div>
+          <div class="ach-grid" id="achGrid"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 侧栏：市场 + 库存 -->
+    <aside class="col-side">
+      <section class="panel market-panel">
+        <div class="panel-head">
+          <h2><span class="dot"></span>集市行情</h2>
+          <span class="hint">价格每日浮动</span>
+        </div>
+        <div class="market-list" id="marketList"></div>
+      </section>
+
+      <section class="panel bag-panel">
+        <div class="panel-head">
+          <h2><span class="dot"></span>仓库与种子</h2>
+        </div>
+        <div class="bag-list" id="bagList"></div>
+      </section>
+
+      <section class="panel ai-panel">
+        <div class="panel-head">
+          <h2><span class="dot"></span>AI 事件引擎</h2>
+          <span class="badge" id="aiBadge">检测中</span>
+        </div>
+        <div class="ai-stats">
+          <div><b id="aiLlmCount">0</b><span>AI 生成</span></div>
+          <div><b id="aiFbCount">0</b><span>本地兜底</span></div>
+          <div><b id="aiRate">—</b><span>AI 占比</span></div>
+        </div>
+        <p class="ai-note" id="aiNote">正在检测大模型接入状态…</p>
+        <div class="ai-actions">
+          <button class="btn btn-ghost btn-sm" id="btnRest">休息 <em>+4 体力</em></button>
+          <button class="btn btn-ghost btn-sm" id="btnNewGame">重开一局</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span>规则引擎 × 大模型事件生成 · 产量 = 基础产量 × 天气系数 × 照料系数 × 事件系数</span>
+    <span id="llmState">—</span>
+  </footer>
+</div>
+
+<!-- 通用弹窗（事件 / 地块 / 结算） -->
+<div class="modal-root" id="modalRoot" aria-hidden="true"></div>
+<!-- 成就与提示浮层 -->
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+<!-- 加载遮罩 -->
+<div class="boot" id="boot">
+  <div class="boot-inner">
+    <span class="boot-emoji">🌱</span>
+    <p>正在唤醒农场…</p>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
