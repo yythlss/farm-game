@@ -1,3 +1,4 @@
+# [无需下载，点击即玩](https://cnb.cool/yythlss/git-demo)
 # 🌾 AI 种田经营游戏
 
 > 30 天，把一块薄田经营成产业。
